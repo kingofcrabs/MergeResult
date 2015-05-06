@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -18,18 +19,15 @@ namespace FillInfo
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-    public partial class MainWindow : Window
+    public partial class MainWindow : Window,INotifyPropertyChanged
     {
         private static readonly log4net.ILog log = log4net.LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
-
+        public event PropertyChangedEventHandler PropertyChanged;
+        private string dstFile;
         public MainWindow()
         {
             InitializeComponent();
-        }
-
-        internal void GetFilesInfo(List<string> barcodeFiles, List<string> volumeFiles, ref string excelFile)
-        {
-            throw new NotImplementedException();
+            txtExcelPath.DataContext = this;
         }
 
         private void btnMerge_Click(object sender, RoutedEventArgs e)
@@ -80,6 +78,7 @@ namespace FillInfo
             }
             List<SampleInfo> sampleInfos = GetSampleInfos(allBarcodes, allVolumes);
             ExcelHelper.WriteResult(sampleInfos, DstFile);
+            SetInfo("已经保存到excel！",false);
         }
 
         private List<SampleInfo> GetSampleInfos(List<string> allBarcodes, List<string> allVolumes)
@@ -104,21 +103,47 @@ namespace FillInfo
 
         public List<string> BarcodeFiles { get; set; }
         public List<string> VolumeFiles { get; set; }
-        public string DstFile { get; set; }
+        public string DstFile
+        {
+            get
+            {
+                return dstFile;
+            }
+            set
+            {
+                dstFile = value;
+                OnPropertyChanged("DstFile");
+            }
+        }
+        private void OnPropertyChanged(string prop)
+        {
+           if( PropertyChanged != null )
+           {
+              PropertyChanged(this, new PropertyChangedEventArgs(prop));
+           }
+        }
+ 
 
         private void btnBrowse_Click(object sender, RoutedEventArgs e)
         {
             btnMerge.IsEnabled = false;
+
             var dialog = new WinForms.FolderBrowserDialog();
+            if (Properties.Settings.Default.lastFolder != "")
+                dialog.SelectedPath = Properties.Settings.Default.lastFolder;
             var result = dialog.ShowDialog();
             if (result != WinForms.DialogResult.OK)
                 return;
 
             string folder = dialog.SelectedPath;
+            Properties.Settings.Default.lastFolder = folder;
+            Properties.Settings.Default.Save();
             DirectoryInfo dirInfo = new DirectoryInfo(folder);
             var files = dirInfo.EnumerateFiles("*.csv").Select(x => x.FullName);
             SeparateFilesByType(files);
-            DstFile = dirInfo.EnumerateFiles(".xlsx").First().FullName;
+            var excels = dirInfo.EnumerateFiles("*.xlsx");
+            if(excels != null)
+                DstFile = excels.First().FullName;
             BarcodeFiles.Sort();
             VolumeFiles.Sort();
             lstBarcodes.ItemsSource = BarcodeFiles;

@@ -22,6 +22,10 @@ namespace FillInfo
                 var suffixA = strs.Where(x => x.Contains("A"));
                 int cols = suffixA.Count();
                 strs = strs.Where(x => GetDigitalSuffix(x)).ToArray();
+                if(cols == 0)
+                {
+                    continue;
+                }
                 slices = strs.Count() / cols;
                 CheckBarcodes(strs, cols, slices);
                 allBarcodes.AddRange(strs);

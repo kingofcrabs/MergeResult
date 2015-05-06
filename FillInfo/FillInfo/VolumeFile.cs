@@ -21,18 +21,17 @@ namespace FillInfo
             {
                 var thisBatchLines = lines.Take(m_Slices);
                 lines = lines.Skip(m_Slices);
-                bool bLastBatch = lines.Count() == 0;
-                allVolumes.AddRange(GetVolThisRegion(thisBatchLines,bLastBatch));
+                allVolumes.AddRange(GetVolThisRegion(thisBatchLines));
             }
             return allVolumes;
         }
 
-        private IEnumerable<string> GetVolThisRegion(IEnumerable<string> thisBatchLines, bool isLastBatch)
+        private IEnumerable<string> GetVolThisRegion(IEnumerable<string> thisBatchLines)
         {
             List<List<string>> volumes = new List<List<string>>();
             foreach(string line in thisBatchLines)
             {
-                volumes.Add(line.Split(',').Select(x => ConvertFormat(x,isLastBatch)).ToList());
+                volumes.Add(line.Split(',').ToList());
             }
             int nSlices = volumes.Count;
             int batchTips = volumes[0].Count;
@@ -41,22 +40,25 @@ namespace FillInfo
             {
                 for(int i = 0; i< nSlices; i++)
                 {
-                    result.Add(volumes[i][tipIndex]);
+                    result.Add(ConvertFormat(volumes[i][tipIndex], i== nSlices-1));
                 }
             }
             return result;
         }
 
-        private string ConvertFormat(string x,bool isLastBatch)
+        private string ConvertFormat(string x,bool isLastSlice)
         {
             if (x == "")
                 return x;
             int dotIndex = x.IndexOf('.');
+            if (dotIndex == -1)
+                return x;
+
             string formatedStr = x.Substring(0, dotIndex);
             double val = double.Parse(formatedStr);
-            if(val <0 )
+            if(val <= 0 )
             {
-                formatedStr = isLastBatch ? "" : "0";
+                formatedStr = isLastSlice ? "" : "0";
             }
             return formatedStr;
         }
