@@ -28,6 +28,7 @@ namespace FillInfo
         {
             InitializeComponent();
             txtExcelPath.DataContext = this;
+            lblVersion.Content = "版本：" + strings.version;
         }
 
         private void btnMerge_Click(object sender, RoutedEventArgs e)
@@ -98,7 +99,9 @@ namespace FillInfo
         private string GetOrgBarcode(string barcode)
         {
             int index = barcode.IndexOf('-');
-            return barcode.Substring(0, index);
+
+            string barcodeWithoutSuffix = barcode.Substring(0, index);
+            return barcodeWithoutSuffix.Replace("B", "P");
         }
 
         public List<string> BarcodeFiles { get; set; }
