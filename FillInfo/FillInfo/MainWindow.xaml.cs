@@ -1,9 +1,11 @@
-﻿using System;
+﻿using FillInfo.Properties;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Data;
@@ -28,25 +30,25 @@ namespace FillInfo
         {
             InitializeComponent();
             txtExcelPath.DataContext = this;
-            lblVersion.Content = "版本：" + strings.version;
+            lblVersion.Content = strings.version;
         }
 
         private void btnMerge_Click(object sender, RoutedEventArgs e)
         {
-            try
-            {
-                MergeFiles();
-            }
-            catch (Exception ex)
-            {
-                SetInfo(ex.Message);
-                log.Info(ex.Message + ex.StackTrace);
-            }
+            btnBrowse.IsEnabled = false;
+            btnMerge.IsEnabled = false;
+            SetInfo("开始merge！", false);
+            
+            ThreadStart thstart = new ThreadStart(MergeFiles);
+            Thread th = new Thread(thstart);
+            th.Start();
+           
         }
 
         private void MergeFiles()
         {
             log.Info("Merge Files");
+            
             string errMsg = "";
             bool readyForMerge = CheckReady(ref errMsg);
             if (!readyForMerge)
@@ -79,7 +81,12 @@ namespace FillInfo
             }
             List<SampleInfo> sampleInfos = GetSampleInfos(allBarcodes, allVolumes);
             ExcelHelper.WriteResult(sampleInfos, DstFile);
-            SetInfo("已经保存到excel！",false);
+            this.Dispatcher.Invoke(new Action(()=>{
+                SetInfo("已经保存到excel！", false);
+                btnBrowse.IsEnabled = true;
+                btnMerge.IsEnabled = true;
+            }));
+          
         }
 
         private List<SampleInfo> GetSampleInfos(List<string> allBarcodes, List<string> allVolumes)
@@ -99,9 +106,7 @@ namespace FillInfo
         private string GetOrgBarcode(string barcode)
         {
             int index = barcode.IndexOf('-');
-
-            string barcodeWithoutSuffix = barcode.Substring(0, index);
-            return barcodeWithoutSuffix.Replace("B", "P");
+            return barcode.Substring(0, index);
         }
 
         public List<string> BarcodeFiles { get; set; }
@@ -130,7 +135,7 @@ namespace FillInfo
         private void btnBrowse_Click(object sender, RoutedEventArgs e)
         {
             btnMerge.IsEnabled = false;
-
+            SetInfo("", false);
             var dialog = new WinForms.FolderBrowserDialog();
             if (Properties.Settings.Default.lastFolder != "")
                 dialog.SelectedPath = Properties.Settings.Default.lastFolder;
@@ -145,8 +150,14 @@ namespace FillInfo
             var files = dirInfo.EnumerateFiles("*.csv").Select(x => x.FullName);
             SeparateFilesByType(files);
             var excels = dirInfo.EnumerateFiles("*.xlsx");
-            if(excels != null)
+            if (excels != null && excels.Count() > 0)
                 DstFile = excels.First().FullName;
+            else
+            {
+                SetInfo("未能找到excel文件！");
+                return;
+            }
+              
             BarcodeFiles.Sort();
             VolumeFiles.Sort();
             lstBarcodes.ItemsSource = BarcodeFiles;
@@ -195,7 +206,8 @@ namespace FillInfo
             VolumeFiles = new List<string>();
             foreach (string file in files)
             {
-                bool isBarcode = File.ReadLines(file).First().Contains("条");
+                string firstLine = File.ReadLines(file).First();
+                bool isBarcode = firstLine.Contains("条") || firstLine.Contains("?");
                 if (isBarcode)
                 {
                     BarcodeFiles.Add(file);

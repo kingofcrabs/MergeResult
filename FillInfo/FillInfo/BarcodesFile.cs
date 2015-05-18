@@ -48,7 +48,7 @@ namespace FillInfo
                     string expectBarcode = string.Format("{0}-{1}",template,slice+1);
                     if(curBarcode != expectBarcode)
                     {
-                        throw new Exception (string.Format("barcode:{0} is incorrect, expected：{1}",curBarcode,expectBarcode));
+                        throw new Exception (string.Format("barcode:{0} is incorrect, expected：{1} at column:{2} slice:{3}",curBarcode,expectBarcode,col+1,slice+1));
                     }
                 }
             }

@@ -38,29 +38,23 @@ namespace FillInfo
             List<string> result = new List<string>();
             for( int tipIndex = 0; tipIndex < batchTips; tipIndex++)
             {
+                if (double.Parse(volumes[0][tipIndex]) < 0)
+                    continue;
                 for(int i = 0; i< nSlices; i++)
                 {
-                    result.Add(ConvertFormat(volumes[i][tipIndex], i== nSlices-1));
+                    result.Add(ConvertFormat(volumes[i][tipIndex]));
                 }
             }
             return result;
         }
 
-        private string ConvertFormat(string x,bool isLastSlice)
+        private string ConvertFormat(string x)
         {
             if (x == "")
                 return x;
-            int dotIndex = x.IndexOf('.');
-            if (dotIndex == -1)
-                return x;
-
-            string formatedStr = x.Substring(0, dotIndex);
-            double val = double.Parse(formatedStr);
-            if(val <= 0 )
-            {
-                formatedStr = isLastSlice ? "" : "0";
-            }
-            return formatedStr;
+           
+            double val = double.Parse(x);
+            return val <= 0 ? "0" : val.ToString("0.0");
         }
 
         public IEnumerable<string> Read(string file, int slices)
