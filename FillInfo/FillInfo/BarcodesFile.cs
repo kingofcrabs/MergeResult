@@ -15,6 +15,8 @@ namespace FillInfo
             lines = lines.Skip(1).ToArray();
             lines = lines.Where(x => x.Contains("A")).ToArray();
             List<string> allBarcodes = new List<string>();
+            List<List<string>> eachLabwareBarcodes = new List<List<string>>();
+            bool bFirstLineContainsValue = true;
             foreach(string line in lines)
             {
                 string[] strs = line.Split(',');
@@ -27,10 +29,26 @@ namespace FillInfo
                     continue;
                 }
                 slices = strs.Count() / cols;
+                if (bFirstLineContainsValue)
+                {
+                    for (int i = 0; i < cols; i++)
+                        eachLabwareBarcodes.Add(new List<string>());
+                    bFirstLineContainsValue = false;
+                }
                 CheckBarcodes(strs, cols, slices);
-                allBarcodes.AddRange(strs);
+                for (int i = 0; i < cols; i++ )
+                {
+                    var tmpStrs = strs.Take(slices).ToList();
+                    eachLabwareBarcodes[i].AddRange(tmpStrs);
+                    strs = strs.Skip(slices).ToArray();
+
+                }
+                
             }
-            
+            foreach(List<string> barcodesSameLabware in eachLabwareBarcodes)
+            {
+                allBarcodes.AddRange(barcodesSameLabware);
+            }
             return allBarcodes;
         }
 
